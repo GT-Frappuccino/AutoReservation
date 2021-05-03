@@ -72,3 +72,68 @@ for i in dates_unwanted:
             dates.remove(i)
 for i in range(len(dates)):
     print(dates[i].find_element_by_class_name('num').get_attribute('innerHTML'))   
+
+#####
+
+time_select = d.find_element_by_class_name('time_select')
+time_select_anchor_fn = d.find_elements_by_class_name('select_anchor')[1].find_element_by_tag_name('i') # 시간 접었다 펼치는 버튼
+input_time_to_reserve = {'오전': 1, '오후': 1} # 원하는 예약 시간대 입력
+input_people_num = 1 # 원하는 사람 수 입력
+time.sleep(0.5)
+
+
+# dates 날짜, 시간대 순으로 가능한 날이 있는지 찾기
+for s in dates:
+    s.click()
+    time.sleep(0.5)
+    time_items = []
+    if input_time_to_reserve['오전']:
+        time_items.extend(time_select.find_element_by_class_name('am').find_elements_by_class_name('item'))
+    if input_time_to_reserve['오후']:
+        time_items.extend(time_select.find_element_by_class_name('pm').find_elements_by_class_name('item'))
+    for i in range(len(time_items)):
+        print(time_items[i].find_element_by_class_name('anchor').get_attribute('innerHTML'))   
+
+    found = False
+    for i in time_items: # 제일 처음 존재하는 빈 시간대 찾기
+        if not i.find_element_by_class_name('none'): # 해당 시간대가 예약 가능하다면
+            i.click() # 가능한 시간대 클릭
+            time.sleep(0.05)
+            
+            # 현재 선택된 인원 수
+            anchor_people_num = int(d.find_element_by_class_name('anchor_people').find_element_by_class_name('text_overflow').find_element_by_tag_name('span').get_attribute('innerHTML')[0])
+            
+            # 최소, 최대 수용 가능 인원 수
+            if d.find_element_by_class_name('info_people').find_element_by_tag_name('span').get_attribute('innerHTML')[0] == '~':
+                acceptable_min_people_num = 0
+            else: 
+                acceptable_min_people_num = int(d.find_element_by_class_name('info_people').find_element_by_tag_name('span').get_attribute('innerHTML')[0])
+            acceptable_max_people_index = int(d.find_element_by_class_name('info_people').find_element_by_tag_name('span').get_attribute('innerHTML').index('명')-1)
+            acceptable_max_people_num = int(d.find_element_by_class_name('info_people').find_element_by_tag_name('span').get_attribute('innerHTML')[acceptable_max_people_index])
+
+            # 원하는 사람 수만큼 예약이 가능한지 확인하고 방문 인원 조정
+            if (acceptable_max_people_num >= input_people_num and acceptable_min_people_num <= input_people_num): # 원하는 사람 수 예약 가능
+                found = True
+                btn_minus = d.find_elements_by_class_name('btn_plus_minus')[0]# 사람 수 + 버튼
+                btn_plus = d.find_elements_by_class_name('btn_plus_minus')[1] # 사람 수 - 버튼
+                number_to_change_people_num = input_people_num - anchor_people_num 
+                if number_to_change_people_num > 0:
+                    for i in range(number_to_change_people_num):
+                        btn_plus.click()
+                elif number_to_change_people_num < 0:
+                    for i in range(number_to_change_people_num):
+                        btn_minus.click()
+            else: # 원하는 사람 수로 예약이 불가할 경우, 시간 탭을 펼쳐서 다음 가능 시간대를 찾음
+                time_select_anchor_fn.click()
+                time.sleep(0.05)
+                
+            if found:
+                break
+    if found:
+        break
+        
+# 찾았는지 출력
+if found:
+    print('found!')
+else: 
+    print('not found ㅠㅠ')
